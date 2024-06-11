@@ -1,11 +1,13 @@
 package com.curso.reservaveiculosapi.model.dto;
 
-public record MessageResponse (
+public record MessageResponse(
         String message,
+        Long userId,
 
-       String userId
-){
+        String userName
 
+
+) {
 
 
 }

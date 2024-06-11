@@ -1,7 +1,9 @@
 package com.curso.reservaveiculosapi.service;
 
+import com.curso.reservaveiculosapi.model.dto.SellerResponse;
 import com.curso.reservaveiculosapi.model.dto.VehicleResponse;
 import com.curso.reservaveiculosapi.model.form.BookVehicleForm;
+import com.curso.reservaveiculosapi.model.form.FilterVehicle;
 import com.curso.reservaveiculosapi.model.form.ImageForm;
 import com.curso.reservaveiculosapi.model.form.VehicleForm;
 import org.springframework.data.domain.Page;
@@ -15,15 +17,19 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 public interface IVehicleService {
 
-    void cadastreVehicle(VehicleForm vehicleForm);
-    void updateVehicle(VehicleForm vehicleForm, Long vehicleId);
+    Long cadastreVehicle(VehicleForm vehicleForm);
+    Long updateVehicle(VehicleForm vehicleForm, Long vehicleId);
     void deleteVehicle(Long id);
-    Page<VehicleResponse> getAllVehiclePaginated(Pageable pageable);
+    Page<VehicleResponse> getAllVehiclePaginated(Pageable pageable, FilterVehicle vehicle);
 
     VehicleResponse getVehicle(Long id);
 
     void saveImage(Long vehicleID, ImageForm imageForm);
     void updateImage(Long vehicleID, ImageForm imageUpdateForm);
-    void deleteImage(Long id);
+    void deleteImage(Long vehicleId, Long imageId);
+
+    Long countVehicles();
+
+    SellerResponse getInfoSeller(Long vehicleId);
 
 }

@@ -28,7 +28,6 @@ public class ImageVehicleEntity {
     @Column(name = "imv_tx_extensao")
     String extension;
 
-    //Todo: implementar
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vei_nr_id", referencedColumnName = "vei_nr_id", nullable = false)
     private VehicleEntity vehicle;

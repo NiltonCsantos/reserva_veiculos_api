@@ -12,16 +12,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     UserDetails findByLogin(String login);
 
 
     @Query(value = """
-
              SELECT vvu.vus_dt_date as date, COUNT(*)
             FROM vus_veiculo_usuario vvu
             JOIN usu_usuario uu

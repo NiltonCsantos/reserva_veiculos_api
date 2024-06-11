@@ -31,6 +31,8 @@ public interface IUserService {
 
    List<BookProjection> getAllReserves();
 
+   Long countUsers();
+
 
    void associateImageToVehicle();
 

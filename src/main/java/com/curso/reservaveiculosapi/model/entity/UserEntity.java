@@ -47,6 +47,7 @@ public class UserEntity implements CustomUserDetails {
     @OneToMany(cascade = CascadeType.REMOVE, mappedBy = "user", fetch = FetchType.LAZY)
     private List<VehicleUserEntity> vehicles;
 
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
 

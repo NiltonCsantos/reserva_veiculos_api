@@ -1,7 +1,10 @@
 package com.curso.reservaveiculosapi.controller;
 
+import com.curso.reservaveiculosapi.model.dto.SellerResponse;
+import com.curso.reservaveiculosapi.model.dto.UserResponse;
 import com.curso.reservaveiculosapi.model.dto.VehicleResponse;
 import com.curso.reservaveiculosapi.model.form.BookVehicleForm;
+import com.curso.reservaveiculosapi.model.form.FilterVehicle;
 import com.curso.reservaveiculosapi.model.form.ImageForm;
 import com.curso.reservaveiculosapi.model.form.VehicleForm;
 import com.curso.reservaveiculosapi.service.IVehicleService;
@@ -18,26 +21,24 @@ import org.springframework.web.bind.annotation.*;
 public class VehicleController {
 
     private final IVehicleService vehicleService;
-
     @PostMapping()
-    public ResponseEntity<Void> cadastreVehicle(@RequestBody @Valid VehicleForm vehicleForm){
-
-        vehicleService.cadastreVehicle(vehicleForm);
-
-        return ResponseEntity.status(201).build();
+    public ResponseEntity<Long> cadastreVehicle(@RequestBody @Valid VehicleForm vehicleForm){
+        System.out.println();
+        return ResponseEntity.status(201).body(vehicleService.cadastreVehicle(vehicleForm));
     }
 
     @PatchMapping("/atualizar/{vehicleId}")
-    public ResponseEntity<Void> updateVehicle(@RequestBody @Valid VehicleForm vehicleForm,
+    public ResponseEntity<Long> updateVehicle(@RequestBody @Valid VehicleForm vehicleForm,
                                               @PathVariable Long vehicleId){
-        this.vehicleService.updateVehicle(vehicleForm, vehicleId);
 
-        return ResponseEntity.status(204).build();
+        System.out.println("RETORNANDO");
+
+        return ResponseEntity.status(200).body( this.vehicleService.updateVehicle(vehicleForm, vehicleId));
     }
 
     @GetMapping("/listar")
-    public ResponseEntity<Page<VehicleResponse>> ListALlVehicles(Pageable pageable){
-        return ResponseEntity.ok(vehicleService.getAllVehiclePaginated(pageable));
+    public ResponseEntity<Page<VehicleResponse>> ListALlVehicles(Pageable pageable, FilterVehicle vehicle){
+        return ResponseEntity.ok(vehicleService.getAllVehiclePaginated(pageable, vehicle));
     }
 
     @GetMapping("/{id}")
@@ -58,6 +59,9 @@ public class VehicleController {
     public ResponseEntity<Void> saveImage(@PathVariable Long vehicleID,
                                           @RequestBody @Valid ImageForm imageForm){
 
+        System.out.println("BUSCANDO Véiculo por id ");
+        System.out.println(vehicleID);
+
         vehicleService.saveImage(vehicleID, imageForm );
 
         return ResponseEntity.status(201).build();
@@ -73,15 +77,23 @@ public class VehicleController {
 
     }
 
-    @DeleteMapping("/imagem/deletar/{id}")
-    public ResponseEntity<Void> deleteImage(@PathVariable Long id){
-
-
+    @DeleteMapping("/imagem/deletar/{vehicleId}/{imageId}")
+    public ResponseEntity<Void> deleteImage(@PathVariable Long vehicleId,  @PathVariable Long imageId ){
+        vehicleService.deleteImage(vehicleId, imageId);
         return ResponseEntity.status(204).build();
 
     }
 
+    @GetMapping("/count")
+    public  ResponseEntity<Long> countVehicles(){
+        return ResponseEntity.ok(this.vehicleService.countVehicles());
+    }
 
+
+    @GetMapping("/info-seller/{vehicleId}")
+    ResponseEntity<SellerResponse> getSellerInfo(@PathVariable Long vehicleId){
+        return ResponseEntity.ok(vehicleService.getInfoSeller(vehicleId));
+    }
 
 
 }

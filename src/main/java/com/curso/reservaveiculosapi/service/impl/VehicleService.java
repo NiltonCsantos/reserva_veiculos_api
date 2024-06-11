@@ -1,16 +1,20 @@
 package com.curso.reservaveiculosapi.service.impl;
 
+import com.curso.reservaveiculosapi.exceptions.BadRequestException;
 import com.curso.reservaveiculosapi.exceptions.ImageVehicleException;
 import com.curso.reservaveiculosapi.exceptions.NotFoundException;
+import com.curso.reservaveiculosapi.exceptions.UnauthorizedException;
+import com.curso.reservaveiculosapi.model.dto.SellerResponse;
 import com.curso.reservaveiculosapi.model.dto.VehicleResponse;
 import com.curso.reservaveiculosapi.model.entity.ImageVehicleEntity;
 import com.curso.reservaveiculosapi.model.entity.UserEntity;
 import com.curso.reservaveiculosapi.model.entity.VehicleEntity;
 import com.curso.reservaveiculosapi.model.entity.VehicleUserEntity;
-import com.curso.reservaveiculosapi.model.form.BookVehicleForm;
+import com.curso.reservaveiculosapi.model.form.FilterVehicle;
 import com.curso.reservaveiculosapi.model.form.ImageForm;
-import com.curso.reservaveiculosapi.model.form.ImageUpdateForm;
 import com.curso.reservaveiculosapi.model.form.VehicleForm;
+import com.curso.reservaveiculosapi.model.projections.SellerProjection;
+import com.curso.reservaveiculosapi.repository.ImageVehicleRepository;
 import com.curso.reservaveiculosapi.repository.VehicleRepository;
 import com.curso.reservaveiculosapi.repository.VehicleUserRepository;
 import com.curso.reservaveiculosapi.service.IVehicleService;
@@ -18,14 +22,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 @Service
@@ -36,15 +37,16 @@ public class VehicleService implements IVehicleService {
 
     private final UserService userService;
 
-
-
     private final VehicleUserRepository vehicleUserRepository;
 
     private final AuthenticateService authenticateService;
 
+    private final ImageVehicleRepository imageVehicleRepository;
+
 
     @Override
-    public void cadastreVehicle(VehicleForm vehicleForm) {
+    @Transactional
+    public Long cadastreVehicle(VehicleForm vehicleForm) {
 
         UserEntity user = userService.findUser(authenticateService.getUser().getId());
 
@@ -65,20 +67,22 @@ public class VehicleService implements IVehicleService {
                 .date(LocalDate.now())
                 .build();
 
-        this.vehicleUserRepository.save(vehicleUserEntity);
+        System.out.println("ID DE RETORNO");
+        System.out.println();
 
-        System.out.println(user.getVehicles().size());
-
+        return this.vehicleUserRepository.save(vehicleUserEntity).getVehicle().getId();
 
     }
 
     @Override
-    public void updateVehicle(VehicleForm vehicleForm, Long vehicleId) throws NotFoundException {
+    @Transactional
+    public Long updateVehicle(VehicleForm vehicleForm, Long vehicleId) throws NotFoundException {
+
+
 
         boolean isUserContainsVehicle =
                 this.userContainsVehicle(userService.findUser(authenticateService.getUser().getId()).getVehicles(), vehicleId);
 
-        System.out.println(isUserContainsVehicle);
 
         VehicleEntity vehicle = this.findVehicle(vehicleId);
 
@@ -87,16 +91,18 @@ public class VehicleService implements IVehicleService {
                     "motivo de não estar vínculado(a) a ele");
         }
 
-        System.out.println(vehicleForm);
 
         vehicle.setType(vehicleForm.type());
         vehicle.setName(vehicleForm.name());
         vehicle.setMaker(vehicleForm.maker());
         vehicle.setPrice(vehicleForm.price());
 
-        System.out.println(vehicle.getPrice());
 
-        vehicleRepository.save(vehicle);
+         vehicleRepository.save(vehicle);
+
+        System.out.println("ID DO VEICULO: "+ vehicleId);
+
+         return vehicleId;
 
     }
 
@@ -132,11 +138,13 @@ public class VehicleService implements IVehicleService {
     }
 
     @Override
-    public Page<VehicleResponse> getAllVehiclePaginated(Pageable pageable) {
-        return this.vehicleRepository.findAll(pageable).map(VehicleResponse::new);
+    @Transactional
+    public Page<VehicleResponse> getAllVehiclePaginated(Pageable pageable, FilterVehicle vehicle) {
+        return this.vehicleRepository.findAllByFilters(pageable, vehicle).map(VehicleResponse::new);
     }
 
     @Override
+    @Transactional
     public VehicleResponse getVehicle(Long id) {
         VehicleEntity vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Veículo não encontrado"));
@@ -145,7 +153,10 @@ public class VehicleService implements IVehicleService {
     }
 
     @Override
+    @Transactional
     public void saveImage(Long vehicleID, ImageForm imageForm) {
+
+        System.out.println("CADASTRANDO IMAGEM");
 
         VehicleEntity vehicle = this.findVehicle(vehicleID);
 
@@ -182,9 +193,13 @@ public class VehicleService implements IVehicleService {
     }
 
     @Override
-    public void updateImage(Long vehicleID, ImageForm imageUpdateForm) {
+    @Transactional
+    public void updateImage(Long vehicleID, ImageForm imageUpdateForm) throws UnauthorizedException {
 
         VehicleEntity vehicle = this.findVehicle(vehicleID);
+
+        System.out.println("DATA");
+        System.out.println(imageUpdateForm);
 
         boolean isUserContainsVehicle =
                 this.userContainsVehicle(userService.findUser(authenticateService.getUser().getId()).getVehicles(),
@@ -192,15 +207,12 @@ public class VehicleService implements IVehicleService {
 
 
         if (!isUserContainsVehicle) {
-            throw new NotFoundException("Você não pode atualizar imagens  desse véiculo, devido ao " +
+            throw new UnauthorizedException("Você não pode atualizar imagens  desse véiculo, devido ao " +
                     "motivo de não estar vínculado(a) a ele");
         }
 
 
-        ImageVehicleEntity imageVehicleEntity = vehicle.getImages().stream()
-                .filter(image -> image.getId().equals(imageUpdateForm.idImage()))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("Imagem não encontrada"));
+        ImageVehicleEntity imageVehicleEntity =  verifiFyVehicleContainsImage(vehicle.getId(), imageUpdateForm.idImage());
 
         imageVehicleEntity.setBytes(imageUpdateForm.bytes());
         imageVehicleEntity.setExtension(imageUpdateForm.extension());
@@ -212,17 +224,73 @@ public class VehicleService implements IVehicleService {
     }
 
     @Override
-    public void deleteImage(Long id) {
+    @Transactional
+    public void deleteImage(Long vehicleID, Long imageId) throws UnauthorizedException {
+
+        VehicleEntity vehicle = this.findVehicle(vehicleID);
+
+        boolean isUserContainsVehicle =
+                this.userContainsVehicle(userService.findUser(authenticateService.getUser().getId()).getVehicles(),
+                        vehicleID);
 
 
+        if (!isUserContainsVehicle) {
+            throw new UnauthorizedException("Você não pode atualizar imagens  desse véiculo, devido ao " +
+                    "motivo de não estar vínculado(a) a ele");
+        }
+
+        ImageVehicleEntity imageVehicleEntity = verifiFyVehicleContainsImage(vehicle.getId(), imageId);
+
+
+        imageVehicleRepository.delete(imageVehicleEntity);
 
     }
+
 
     private VehicleEntity findVehicle(Long vehicleId) throws NotFoundException {
         return this.vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new NotFoundException("Veículo não encontrado"));
     }
 
+
+    @Transactional
+    @Override
+    public Long countVehicles() {
+        return vehicleRepository.count();
+    }
+
+    @Override
+    public SellerResponse getInfoSeller(Long vehicleId) {
+        SellerProjection user= vehicleRepository.findBySellerInfo(vehicleId);
+
+        System.out.println(user.getLogin());
+
+        return new SellerResponse(
+                user.getId(),
+                user.getName(),
+                user.getLogin()
+        );
+
+    }
+
+    private ImageVehicleEntity verifiFyVehicleContainsImage(Long vehicleId, Long imageId)
+    throws NotFoundException, UnauthorizedException {
+
+        System.out.println("IMAGEM");
+        System.out.println(imageId);
+
+
+
+       ImageVehicleEntity imageVehicleEntity = imageVehicleRepository.findById(imageId)
+                .orElseThrow(() -> new NotFoundException("Imagem não encontrada"));
+
+       if (!imageVehicleEntity.getVehicle().getId().equals(vehicleId)){
+           throw new UnauthorizedException("A imagem não pertecente a esse veículo");
+       }
+
+       return imageVehicleEntity;
+
+    }
     private boolean userContainsVehicle(List<VehicleUserEntity> vehicleUserEntities, Long vehicleId) {
         return vehicleUserEntities
                 .stream()

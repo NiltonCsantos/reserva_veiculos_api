@@ -60,6 +60,7 @@ public class UserService implements IUserService {
 
     }
 
+    @Transactional
     @Override
     public Page<UserResponse> getAllUserPaginated(Pageable pageable) {
         return userRepository.findAll(pageable).map(UserResponse::new);
@@ -135,6 +136,11 @@ public class UserService implements IUserService {
         List<BookProjection> bookProjection = userRepository.findReserveUsersToProfileUser(ProfileRole.USER);
 
         return bookProjection;
+    }
+
+    @Override
+    public Long countUsers() {
+        return userRepository.count();
     }
 
     @Override

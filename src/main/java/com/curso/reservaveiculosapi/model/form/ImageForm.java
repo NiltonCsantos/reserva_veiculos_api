@@ -10,8 +10,6 @@ public record ImageForm(
         byte[] bytes,
         @NotBlank(message = "O tipo da imagem não pode ser nulo")
         String extension,
-
-
         Long idImage
 ) {
 }
